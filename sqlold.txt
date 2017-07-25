@@ -1,0 +1,155 @@
+CREATE TABLE `note_jr` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `line_num` varchar(10) DEFAULT NULL,
+  `product_class` varchar(10) DEFAULT NULL,
+  `main_model` varchar(45) DEFAULT NULL,
+  `serial_num` varchar(45) DEFAULT NULL,
+  `single_board_name` varchar(45) DEFAULT NULL,
+  `project_num` varchar(45) DEFAULT NULL,
+  `produce_date` date DEFAULT NULL,
+  `batch_num` varchar(45) DEFAULT NULL,
+  `process_state` varchar(45) DEFAULT NULL,
+  `product_id` varchar(45) DEFAULT NULL,
+  `fault_num` varchar(10) DEFAULT NULL,
+  `fault_name` varchar(45) DEFAULT NULL,
+  `fault_class` varchar(45) DEFAULT NULL,
+  `note_person` varchar(10) DEFAULT NULL,
+  `note_date` datetime DEFAULT NULL,
+  `pcb_name` varchar(45) DEFAULT NULL,
+  `position_symbol` varchar(45) DEFAULT NULL,
+  `material_name` varchar(45) DEFAULT NULL,
+  `service_result` varchar(45) DEFAULT NULL,
+  `work_hours` int(11) DEFAULT NULL,
+  `service_person` varchar(10) DEFAULT NULL,
+  `service_date` datetime DEFAULT NULL,
+  `comment` varchar(145) DEFAULT NULL,
+  `second_service` char(1) DEFAULT NULL,
+  `cause_parse` varchar(145) DEFAULT NULL,
+  `parse_person` varchar(10) DEFAULT NULL,
+  `parse_class` varchar(145) DEFAULT NULL,
+  `process_control` varchar(145) DEFAULT NULL,
+  `fail_correct` varchar(145) DEFAULT NULL,
+  `partment` varchar(45) DEFAULT '金融',
+  `state` varchar(10) DEFAULT NULL,
+  `in_time` datetime DEFAULT NULL,
+  `out_time` datetime DEFAULT NULL,
+  `in_person` varchar(45) DEFAULT NULL,
+  `out_person` varchar(45) DEFAULT NULL,
+  `fault_class2` varchar(45) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=244 DEFAULT CHARSET=utf8
+
+
+
+CREATE TABLE `note_yd` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `line_num` varchar(10) DEFAULT NULL,
+  `product_class` varchar(10) DEFAULT NULL,
+  `main_model` varchar(45) DEFAULT NULL,
+  `serial_num` varchar(45) DEFAULT NULL,
+  `single_board_name` varchar(45) DEFAULT NULL,
+  `project_num` varchar(45) DEFAULT NULL,
+  `produce_date` date DEFAULT NULL,
+  `batch_num` varchar(45) DEFAULT NULL,
+  `process_state` varchar(45) DEFAULT NULL,
+  `product_id` varchar(45) DEFAULT NULL,
+  `fault_num` varchar(10) DEFAULT NULL,
+  `fault_name` varchar(45) DEFAULT NULL,
+  `fault_class` varchar(45) DEFAULT NULL,
+  `note_person` varchar(10) DEFAULT NULL,
+  `note_date` datetime DEFAULT NULL,
+  `pcb_name` varchar(45) DEFAULT NULL,
+  `position_symbol` varchar(45) DEFAULT NULL,
+  `material_name` varchar(45) DEFAULT NULL,
+  `service_result` varchar(45) DEFAULT NULL,
+  `work_hours` int(11) DEFAULT NULL,
+  `service_person` varchar(10) DEFAULT NULL,
+  `service_date` datetime DEFAULT NULL,
+  `comment` varchar(145) DEFAULT NULL,
+  `second_service` char(1) DEFAULT NULL,
+  `cause_parse` varchar(145) DEFAULT NULL,
+  `parse_person` varchar(10) DEFAULT NULL,
+  `parse_class` varchar(145) DEFAULT NULL,
+  `process_control` varchar(145) DEFAULT NULL,
+  `fail_correct` varchar(145) DEFAULT NULL,
+  `partment` varchar(45) DEFAULT '移动',
+  `state` varchar(10) DEFAULT NULL,
+  `in_time` datetime DEFAULT NULL,
+  `out_time` datetime DEFAULT NULL,
+  `in_person` varchar(45) DEFAULT NULL,
+  `out_person` varchar(45) DEFAULT NULL,
+  `fault_class2` varchar(45) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8
+
+
+CREATE TABLE `fault_class` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `fault` varchar(45) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8
+
+
+CREATE TABLE `gzdm` (
+  `dm` varchar(10) DEFAULT NULL,
+  `disc` varchar(45) DEFAULT NULL,
+  `wx` char(1) DEFAULT 'c',
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=191 DEFAULT CHARSET=utf8
+
+
+CREATE TABLE `gzdm_yd` (
+  `dm` varchar(10) DEFAULT NULL,
+  `disc` varchar(45) DEFAULT NULL,
+  `wx` char(1) DEFAULT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=217 DEFAULT CHARSET=utf8
+
+
+
+CREATE TABLE `user_sc_c` (
+  `name` varchar(50) NOT NULL,
+  `password` char(60) DEFAULT NULL,
+  `jr` char(1) DEFAULT NULL,
+  `yd` char(1) DEFAULT NULL,
+  `ad` char(1) DEFAULT NULL,
+  `add_gzdm_jr` char(1) DEFAULT NULL,
+  `add_gzdm_yd` char(1) DEFAULT NULL,
+  `sad` char(1) DEFAULT NULL,
+  `user_type` varchar(45) DEFAULT NULL,
+  `only_note` char(1) DEFAULT NULL,
+  `delete_record` varchar(1) DEFAULT NULL,
+  `flow_opt` char(1) DEFAULT NULL,
+  `flow_state` char(1) DEFAULT NULL,
+  `out_file` char(1) DEFAULT NULL,
+  `data_count` char(1) DEFAULT NULL,
+  `exemption` char(1) DEFAULT NULL,
+  PRIMARY KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+
+
+CREATE TABLE `version_control` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `version_num_l` varchar(45) DEFAULT NULL,
+  `version_num_h` varchar(45) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8
+
+
+CREATE TABLE `xiliehao` (
+  `dm` varchar(10) NOT NULL,
+  `xiliehao` varchar(45) NOT NULL,
+  `xinghao` varchar(45) DEFAULT NULL,
+  PRIMARY KEY (`dm`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+
+
+CREATE TABLE `xiliehao_yd` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `bm` varchar(45) DEFAULT NULL,
+  `xiliehao` varchar(45) DEFAULT NULL,
+  `xinghao` varchar(45) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=10298 DEFAULT CHARSET=utf8
