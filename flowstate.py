@@ -278,205 +278,49 @@ class WinWaitService(QWidget):
 				pass
 
 		
-
-
-
 '''
-流转状态统计界面
+流转单
 '''
-class WinFlowState(QWidget):
-	def __init__(self,tablename,cur1,conn1):
-		global cur,conn
+class WinFlowList(QWidget):
+	def __init__(self,tablename):
 		super().__init__()
-		cur=cur1
-		conn=conn1
 		self.tablename=tablename
-		self.finished_level=FinishLevel(self.tablename)
 		self.initUI()
 
-
 	def initUI(self):
-
-		def label_event(s):
-			self.winwaitservice=WinWaitService(self.tablename,self.finished_level,title='待维修(全部)')
-
-		def label_event_A(s):
-			self.winwaitservice=WinWaitService(self.tablename,self.finished_level,title='待维修(当天完成计划)')
-
-		def label_event_B(s):
-			self.winwaitservice=WinWaitService(self.tablename,self.finished_level,title='待维修(明天天完成计划)')
-
-		def label_event_C(s):
-			self.winwaitservice=WinWaitService(self.tablename,self.finished_level,title='待维修(后天及以后完成计划)')
-		def label_event_in(s):
-			self.winin=WinWaitIn(self.tablename,self.finished_level)
-		def label_event_out(s):
-			self.winin=WinWaitOut(self.tablename,self.finished_level)
-		def label_event_error(s):
-			self.winerror=WinFlowError(self.tablename)
-
-
-		label_date_start=QLabel('开始日期(含)',self)
-		label_date_end=QLabel('结束日期(含)',self)
-		self.date_edit_start=QDateEdit(QDate.currentDate(),self)
-		self.date_edit_end=QDateEdit(QDate.currentDate(),self)
 		self.comb_type=QComboBox(self)
 		self.comb_type.addItems(['全部','未完成','已完成'])
-		btn=QPushButton('刷新',self)
-		btn.clicked.connect(self.btn_event)
-		layout_date=QHBoxLayout()
-		layout_date.addStretch(1)
-		layout_date.addWidget(label_date_start)
-		layout_date.addWidget(self.date_edit_start)
-		layout_date.addStretch(1)
-		
-		layout_date.addWidget(label_date_end)
-		layout_date.addWidget(self.date_edit_end)
-		layout_date.addWidget(self.comb_type)
-		layout_date.addWidget(btn)
-
-		tabwidget=QTabWidget(self)
-
+		label_date=QLabel('日期',self)
+		self.date_line=QDateEdit(QDate.currentDate(),self)
 		self.table=QTableWidget(0,6,self)
 		self.table.setHorizontalHeaderLabels(['流转单号','转入维修时间','完成时间','耗时','总数量','剩余数量'])
 		self.table.cellDoubleClicked.connect(self.double_event)
-		win_flow_count=WinFlowCount(cur,conn,self.tablename)
-		tabwidget.addTab(self.table,'流转单')
-		tabwidget.addTab(win_flow_count,'当天流转统计')
 
-
-		label_all=QLabel('登记不良总数：',self)
-		label_count=QLabel('待修(总数)：',self)
-		label_count.setCursor(QCursor(Qt.PointingHandCursor))
-		label_count.setStyleSheet("QLabel{color:rgb(0,0,0,255);font-size:20px}")
-		label_count.mouseReleaseEvent=label_event
-		label_count_A=QLabel('待修(紧急):',self)
-		label_count_A.setToolTip('当天及之前需完成的计划')
-		label_count_A.setCursor(QCursor(Qt.PointingHandCursor))
-		label_count_A.setStyleSheet("QLabel{color:rgb(255,50,50,255);font-size:20px}")
-		label_count_A.mouseReleaseEvent=label_event_A
-		label_count_B=QLabel('待修(加急):',self)
-		label_count_B.setToolTip('明天需完成的计划')
-		label_count_B.setCursor(QCursor(Qt.PointingHandCursor))
-		label_count_B.setStyleSheet("QLabel{color:rgb(255,160,45,255);font-size:20px}")
-		label_count_B.mouseReleaseEvent=label_event_B
-		label_count_C=QLabel('待修(普通):',self)
-		label_count_C.setToolTip('后天及之后需完成的计划')
-		label_count_C.setCursor(QCursor(Qt.PointingHandCursor))
-		label_count_C.setStyleSheet("QLabel{color:rgb(50,50,255,255);font-size:20px}")
-		label_count_C.mouseReleaseEvent=label_event_C
-		label_in_count=QLabel('转入维修数量：',self)
-		label_out_count=QLabel('维修转出数量：',self)
-		label_lave=QLabel('维修剩余数量：',self)
-		label_error=QLabel('流转异常数量：',self)
-		label_error.mouseReleaseEvent=label_event_error
-		label_error.setCursor(QCursor(Qt.PointingHandCursor))
-		label_wait=QLabel('待转入维修数量：',self)
-		label_wait.setCursor(QCursor(Qt.PointingHandCursor))
-		label_wait.setStyleSheet("QLabel{color:rgb(240,46,140,255);font-size:20px}")
-		label_wait.mouseReleaseEvent=label_event_in
-		label_wait_out=QLabel('待转入产线数量：',self)
-		label_wait_out.setCursor(QCursor(Qt.PointingHandCursor))
-		label_wait_out.setStyleSheet("QLabel{color:rgb(10,130,10,255);font-size:20px}")
-		label_wait_out.mouseReleaseEvent=label_event_out
-
-
-		self.label_all1=QLabel('',self)
-		self.label_count1=QLabel('',self)
-		self.label_count1.setStyleSheet("QLabel{color:rgb(0,0,0,255);font-size:20px}")
-		label_count.setStyleSheet("QLabel{color:rgb(0,0,0,255);font-size:20px}")
-		self.label_countA1=QLabel('',self)
-		self.label_countA1.setStyleSheet("QLabel{color:rgb(255,50,50,255);font-size:20px}")
-		self.label_countB1=QLabel('',self)
-		self.label_countB1.setStyleSheet("QLabel{color:rgb(255,160,45,255);font-size:20px}")
-		self.label_countC1=QLabel('',self)
-		self.label_countC1.setStyleSheet("QLabel{color:rgb(50,50,255,255);font-size:20px}")
-		self.label_in_count1=QLabel('',self)
-		self.label_out_count1=QLabel('',self)
-		self.label_lave1=QLabel('',self)
-		self.label_error1=QLabel('',self)
-		self.label_wait1=QLabel('',self)
-		self.label_wait1.setStyleSheet("QLabel{color:rgb(240,46,140,255);font-size:20px}")
-		self.label_wait_out1=QLabel('',self)
-		self.label_wait_out1.setStyleSheet("QLabel{color:rgb(10,130,10,255);font-size:20px}")
-
-
-		glayout=QGridLayout()
-		glayout.addWidget(label_all,0,0)
-		glayout.addWidget(self.label_all1,0,1)
-		glayout.addWidget(label_count,1,0)
-		glayout.addWidget(self.label_count1,1,1)
-
-		glayout.addWidget(label_count_A,2,0)
-		glayout.addWidget(self.label_countA1,2,1)
-		glayout.addWidget(label_count_B,3,0)
-		glayout.addWidget(self.label_countB1,3,1)
-		glayout.addWidget(label_count_C,4,0)
-		glayout.addWidget(self.label_countC1,4,1)
-
-		glayout.addWidget(label_in_count,5,0)
-		glayout.addWidget(self.label_in_count1,5,1)
-		glayout.addWidget(label_out_count,6,0)
-		glayout.addWidget(self.label_out_count1,6,1)
-		glayout.addWidget(label_lave,7,0)
-		glayout.addWidget(self.label_lave1,7,1)
-		glayout.addWidget(label_error,8,0)
-		glayout.addWidget(self.label_error1,8,1)
-		glayout.addWidget(label_wait,9,0)
-		glayout.addWidget(self.label_wait1,9,1)
-		glayout.addWidget(label_wait_out,10,0)
-		glayout.addWidget(self.label_wait_out1,10,1)
-
-		widget=QGroupBox('数量汇总',self)
-
-		widget.setLayout(glayout)
-
-		spliter=QSplitter(Qt.Horizontal,self)
-		spliter.addWidget(tabwidget)
-		spliter.addWidget(widget)
+		btn_flush=QPushButton('刷新',self)
+		btn_flush.clicked.connect(self.flush_event)
+		hlayout=QHBoxLayout()
+		hlayout.addWidget(label_date,alignment=Qt.AlignRight)
+		hlayout.addWidget(self.date_line,alignment=Qt.AlignRight)
+		hlayout.addWidget(self.comb_type,alignment=Qt.AlignRight)
+		hlayout.addWidget(btn_flush,alignment=Qt.AlignRight)
 
 		vlayout=QVBoxLayout(self)
-		vlayout.addLayout(layout_date)
-		vlayout.addWidget(spliter)
+		vlayout.addLayout(hlayout)
+
+		vlayout.addWidget(self.table)
 		self.setLayout(vlayout)
 		self.show()
 
-	def _plan_num_event(self,project_num):
-		time.sleep(0.05)
-		if re.match(r'^[\s]{0,}$',project_num):
-			return
+	def double_event(self,row,column):
+		self.winflawpart=WinFlowPart(self.table.item(row,0).text(),self.tablename)
 
-		s=project_num+'MD5'+project_num+'dj'
-
-		m=hashlib.md5(s.encode('ascii')).hexdigest()
-		print(m)
-		s='http://192.168.30.230/jiekou/OrderInfoGet_ById/?id='+project_num+'&CheckCode='+m
-		try:
-			r=requests.get(s,timeout=2)
-		except:
-			QMessageBox(text='   数据获取失败！  ',parent=self).show()
-			return
-		j=r.json()[0]
-		if len(j)==0:
-			QMessageBox(text='   查询不到该计划id！  ',parent=self).show()
-			return
-	
-		return j['完成时间']
-
-
-
-	'''
-	刷新
-	'''
-	def btn_event(self):
-		
-
+	def flush_event(self):
 		self.table.setRowCount(0)
 		set_all=set()
 		set_no=set()
 		set_yes=set()
-		s1=self.date_edit_start.date().toString("yyyy-MM-dd")
-		s2=self.date_edit_end.date().addDays(1).toString("yyyy-MM-dd")
+		s1=self.date_line.date().toString("yyyy-MM-dd")
+		s2=self.date_line.date().addDays(1).toString("yyyy-MM-dd")
 		cur.execute("select in_time from "+self.tablename+" where in_time>=%s and in_time<%s group by in_time",(s1,s2))
 		li_all=cur.fetchall()
 		conn.commit()
@@ -564,6 +408,205 @@ class WinFlowState(QWidget):
 				self.table.setItem(rowcount,5,QTableWidgetItem('0'))
 				rowcount+=1
 
+
+'''
+流转状态统计界面
+'''
+class WinFlowState(QWidget):
+	def __init__(self,tablename,cur1,conn1):
+		global cur,conn
+		super().__init__()
+		cur=cur1
+		conn=conn1
+		self.tablename=tablename
+		self.finished_level=FinishLevel(self.tablename)
+		self.initUI()
+
+	def initUI(self):
+
+		def label_event(s):
+			self.winwaitservice=WinWaitService(self.tablename,self.finished_level,title='待维修(全部)')
+
+		def label_event_A(s):
+			self.winwaitservice=WinWaitService(self.tablename,self.finished_level,title='待维修(当天完成计划)')
+
+		def label_event_B(s):
+			self.winwaitservice=WinWaitService(self.tablename,self.finished_level,title='待维修(明天天完成计划)')
+
+		def label_event_C(s):
+			self.winwaitservice=WinWaitService(self.tablename,self.finished_level,title='待维修(后天及以后完成计划)')
+		def label_event_in(s):
+			self.winin=WinWaitIn(self.tablename,self.finished_level)
+		def label_event_out(s):
+			self.winin=WinWaitOut(self.tablename,self.finished_level)
+		def label_event_error(s):
+			self.winerror=WinFlowError(self.tablename)
+
+		def label_event_lave(s):
+			self.winlave=WinLave(self.tablename,self.finished_level)
+
+
+		label_date_start=QLabel('开始日期(含)',self)
+		label_date_end=QLabel('结束日期(含)',self)
+		self.date_edit_start=QDateEdit(QDate.currentDate(),self)
+		self.date_edit_end=QDateEdit(QDate.currentDate(),self)
+		
+		btn=QPushButton('刷新',self)
+		btn.clicked.connect(self.btn_event)
+		layout_date=QHBoxLayout()
+		layout_date.addStretch(1)
+		layout_date.addWidget(label_date_start)
+		layout_date.addWidget(self.date_edit_start)
+		layout_date.addStretch(1)
+		
+		layout_date.addWidget(label_date_end)
+		layout_date.addWidget(self.date_edit_end)
+		# layout_date.addWidget(self.comb_type)
+		layout_date.addWidget(btn)
+
+		tabwidget=QTabWidget(self)
+
+
+		win_flow_count=WinFlowCount(cur,conn,self.tablename)
+		win_flow_count_by_date=WinFlowCountByDate(cur,conn,self.tablename)
+		win_flow_list=WinFlowList(self.tablename)
+		
+		tabwidget.addTab(win_flow_count,'当天流转统计')
+		tabwidget.addTab(win_flow_count_by_date,'流转统计查询')
+		tabwidget.addTab(win_flow_list,'流转单')
+
+
+		label_all=QLabel('登记不良总数：',self)
+		label_count=QLabel('待修(总数)：',self)
+		label_count.setCursor(QCursor(Qt.PointingHandCursor))
+		label_count.setStyleSheet("QLabel{color:rgb(0,0,0,255);font-size:20px}")
+		label_count.mouseReleaseEvent=label_event
+		label_count_A=QLabel('待修(紧急):',self)
+		label_count_A.setToolTip('当天及之前需完成的计划')
+		label_count_A.setCursor(QCursor(Qt.PointingHandCursor))
+		label_count_A.setStyleSheet("QLabel{color:rgb(255,50,50,255);font-size:20px}")
+		label_count_A.mouseReleaseEvent=label_event_A
+		label_count_B=QLabel('待修(加急):',self)
+		label_count_B.setToolTip('明天需完成的计划')
+		label_count_B.setCursor(QCursor(Qt.PointingHandCursor))
+		label_count_B.setStyleSheet("QLabel{color:rgb(255,160,45,255);font-size:20px}")
+		label_count_B.mouseReleaseEvent=label_event_B
+		label_count_C=QLabel('待修(普通):',self)
+		label_count_C.setToolTip('后天及之后需完成的计划')
+		label_count_C.setCursor(QCursor(Qt.PointingHandCursor))
+		label_count_C.setStyleSheet("QLabel{color:rgb(50,50,255,255);font-size:20px}")
+		label_count_C.mouseReleaseEvent=label_event_C
+		label_in_count=QLabel('转入维修数量：',self)
+		label_out_count=QLabel('维修转出数量：',self)
+		label_lave=QLabel('维修剩余数量：',self)
+		label_lave.mouseReleaseEvent=label_event_lave
+		label_lave.setCursor(QCursor(Qt.PointingHandCursor))
+		label_lave.setStyleSheet("QLabel{color:rgb(50,10,50,255);font-size:20px}")
+		# label_error=QLabel('流转异常数量：',self)
+		# label_error.mouseReleaseEvent=label_event_error
+		# label_error.setCursor(QCursor(Qt.PointingHandCursor))
+		label_wait=QLabel('待转入维修数量：',self)
+		label_wait.setCursor(QCursor(Qt.PointingHandCursor))
+		label_wait.setStyleSheet("QLabel{color:rgb(240,46,140,255);font-size:20px}")
+		label_wait.mouseReleaseEvent=label_event_in
+		label_wait_out=QLabel('待转入产线数量：',self)
+		label_wait_out.setCursor(QCursor(Qt.PointingHandCursor))
+		label_wait_out.setStyleSheet("QLabel{color:rgb(10,130,10,255);font-size:20px}")
+		label_wait_out.mouseReleaseEvent=label_event_out
+
+
+		self.label_all1=QLabel('',self)
+		self.label_count1=QLabel('',self)
+		self.label_count1.setStyleSheet("QLabel{color:rgb(0,0,0,255);font-size:20px}")
+		label_count.setStyleSheet("QLabel{color:rgb(0,0,0,255);font-size:20px}")
+		self.label_countA1=QLabel('',self)
+		self.label_countA1.setStyleSheet("QLabel{color:rgb(255,50,50,255);font-size:20px}")
+		self.label_countB1=QLabel('',self)
+		self.label_countB1.setStyleSheet("QLabel{color:rgb(255,160,45,255);font-size:20px}")
+		self.label_countC1=QLabel('',self)
+		self.label_countC1.setStyleSheet("QLabel{color:rgb(50,50,255,255);font-size:20px}")
+		self.label_in_count1=QLabel('',self)
+		self.label_out_count1=QLabel('',self)
+		self.label_lave1=QLabel('',self)
+		self.label_lave1.setStyleSheet("QLabel{color:rgb(50,10,50,255);font-size:20px}")
+		# self.label_error1=QLabel('',self)
+		self.label_wait1=QLabel('',self)
+		self.label_wait1.setStyleSheet("QLabel{color:rgb(240,46,140,255);font-size:20px}")
+		self.label_wait_out1=QLabel('',self)
+		self.label_wait_out1.setStyleSheet("QLabel{color:rgb(10,130,10,255);font-size:20px}")
+
+
+		glayout=QGridLayout()
+		glayout.addWidget(label_all,0,0)
+		glayout.addWidget(self.label_all1,0,1)
+		glayout.addWidget(label_count,1,0)
+		glayout.addWidget(self.label_count1,1,1)
+
+		glayout.addWidget(label_count_A,2,0)
+		glayout.addWidget(self.label_countA1,2,1)
+		glayout.addWidget(label_count_B,3,0)
+		glayout.addWidget(self.label_countB1,3,1)
+		glayout.addWidget(label_count_C,4,0)
+		glayout.addWidget(self.label_countC1,4,1)
+
+		glayout.addWidget(label_in_count,5,0)
+		glayout.addWidget(self.label_in_count1,5,1)
+		glayout.addWidget(label_out_count,6,0)
+		glayout.addWidget(self.label_out_count1,6,1)
+		glayout.addWidget(label_lave,7,0)
+		glayout.addWidget(self.label_lave1,7,1)
+		# glayout.addWidget(label_error,8,0)
+		# glayout.addWidget(self.label_error1,8,1)
+		glayout.addWidget(label_wait,9,0)
+		glayout.addWidget(self.label_wait1,9,1)
+		glayout.addWidget(label_wait_out,10,0)
+		glayout.addWidget(self.label_wait_out1,10,1)
+
+		widget=QGroupBox('数量汇总',self)
+
+		widget.setLayout(glayout)
+
+		spliter=QSplitter(Qt.Horizontal,self)
+		spliter.addWidget(tabwidget)
+		spliter.addWidget(widget)
+
+		vlayout=QVBoxLayout(self)
+		vlayout.addLayout(layout_date)
+		vlayout.addWidget(spliter)
+		self.setLayout(vlayout)
+		self.show()
+
+	def _plan_num_event(self,project_num):
+		time.sleep(0.05)
+		if re.match(r'^[\s]{0,}$',project_num):
+			return
+
+		s=project_num+'MD5'+project_num+'dj'
+
+		m=hashlib.md5(s.encode('ascii')).hexdigest()
+		print(m)
+		s='http://192.168.30.230/jiekou/OrderInfoGet_ById/?id='+project_num+'&CheckCode='+m
+		try:
+			r=requests.get(s,timeout=2)
+		except:
+			QMessageBox(text='   数据获取失败！  ',parent=self).show()
+			return
+		j=r.json()[0]
+		if len(j)==0:
+			QMessageBox(text='   查询不到该计划id！  ',parent=self).show()
+			return
+	
+		return j['完成时间']
+
+
+
+	'''
+	刷新
+	'''
+	def btn_event(self):
+		s1=self.date_edit_start.date().toString("yyyy-MM-dd")
+		s2=self.date_edit_end.date().addDays(1).toString("yyyy-MM-dd")
+
 		'''
 		登记不良总数，含非在线维修
 		'''
@@ -633,13 +676,13 @@ class WinFlowState(QWidget):
 		conn.commit()
 		self.label_lave1.setText(str(li[0][0]))
 
-		'''
-		流转异常数量
-		'''
-		cur.execute("select count(id) from "+self.tablename+" where state='待修' and service_result is not null")
-		li=cur.fetchall()
-		conn.commit()
-		self.label_error1.setText(str(li[0][0]))
+		# '''
+		# 流转异常数量
+		# '''
+		# cur.execute("select count(id) from "+self.tablename+" where state='待修' and service_result is not null")
+		# li=cur.fetchall()
+		# conn.commit()
+		# self.label_error1.setText(str(li[0][0]))
 
 
 		'''
@@ -659,8 +702,6 @@ class WinFlowState(QWidget):
 		li=cur.fetchall()
 		conn.commit()
 		self.label_wait_out1.setText(str(li[0][0]))
-	def double_event(self,row,column):
-		self.winflawpart=WinFlowPart(self.table.item(row,0).text(),self.tablename)
 
 		
 '''
@@ -800,6 +841,131 @@ class WinWaitIn(QWidget):
 			else:
 				pass
 
+'''
+维修剩余详细信息
+'''
+
+class WinLave(QWidget):
+	def __init__(self,tablename,finished_level):
+		super().__init__()
+		self.tablename=tablename
+		self.finished_level=finished_level
+		self.initUI()
+
+	def initUI(self):
+		self.table=QTableWidget(0,0,self)
+		self.table.horizontalHeader().setSortIndicator(0, Qt.AscendingOrder)
+		self.table.horizontalHeader().setSortIndicatorShown(True)
+		self.table.horizontalHeader().sectionClicked.connect(self.table.sortByColumn)
+		btn=QPushButton('详细信息',self)
+		btn.clicked.connect(self.btn_event)
+		vlayout=QVBoxLayout(self)
+		vlayout.addWidget(btn)
+		vlayout.addWidget(self.table)
+		self.setLayout(vlayout)
+		self.show()
+		self.data_process_count()
+
+
+	def btn_event(self):
+		sender = self.sender()
+		if sender.text()=='详细信息':
+			self.data_process_detail()
+			sender.setText('统计信息')
+		else:
+			self.data_process_count()
+			sender.setText('详细信息')
+
+	def data_process_detail(self):
+		print('详细信息处理')
+		self.table.setRowCount(0)
+		self.table.setColumnCount(13)
+		self.table.setHorizontalHeaderLabels(['主型号','系列号','批次','计划ID',\
+			'临时产品编码','不良现象','记录人','记录时间','维修人','维修结果','维修时间','启动时间','结束时间'])
+
+		cur.execute("select main_model,serial_num,batch_num,project_num,product_id,fault_name,note_person,\
+			note_date,service_person,service_result,service_date from "+self.tablename+" where state='维修'")
+		
+		li=cur.fetchall()
+
+		conn.commit()
+		if len(li)==0:
+			return
+		self.table.setRowCount(len(li))
+		rowcount=0
+		for i in li:
+			columncount=0
+			for j in i:
+				self.table.setItem(rowcount,columncount,QTableWidgetItem(str(j)))
+				columncount+=1
+			rowcount+=1
+
+		keys=self.finished_level.dic.keys()
+		li_A,li_B,li_C=self.finished_level.get_level()
+		for i in range(self.table.rowCount()):
+			if self.table.item(i,3).text() not in keys:
+				continue
+			self.table.setItem(i,11,QTableWidgetItem(self.finished_level.dic[self.table.item(i,3).text()][0]))
+			self.table.setItem(i,12,QTableWidgetItem(self.finished_level.dic[self.table.item(i,3).text()][1]))
+
+			if self.table.item(i,3).text() in li_A:
+				for j in range(13):
+					self.table.item(i,j).setBackground(QBrush(QColor(255,100,100)))
+			elif self.table.item(i,3).text() in li_B:
+				for j in range(13):
+					self.table.item(i,j).setBackground(QBrush(QColor(255,230,80)))
+			elif self.table.item(i,3).text() in li_C:
+				for j in range(13):
+					self.table.item(i,j).setBackground(QBrush(QColor(150,200,255)))
+			else:
+				pass
+
+	def data_process_count(self):
+		print('统计信息处理')
+		self.table.setRowCount(0)
+		self.table.setColumnCount(6)
+		self.table.setHorizontalHeaderLabels(['线别','计划ID','已修数量','待修数量','启动时间','结束时间'])
+		cur.execute("select note_person,project_num,service_person from "+self.tablename+" where state='维修'")
+		li=cur.fetchall()
+		conn.commit()
+		if len(li)==0:
+			return
+
+		self.dfa=pd.DataFrame(np.array(li),columns=['线别','计划号','维修人'])
+		self.dfa=self.dfa.fillna(value='None')
+
+		li_line=self.dfa['线别'].drop_duplicates().tolist()
+		for i in li_line:
+			li_id=self.dfa[self.dfa['线别']==i]['计划号'].drop_duplicates().tolist()
+			df_temp=self.dfa[self.dfa['线别']==i]
+			for j in li_id:
+				df_count=df_temp[df_temp['计划号']==j]
+				count_service=df_count[df_count['维修人']!= 'None'].shape[0]
+				count_noservice=df_count[df_count['维修人']=='None'].shape[0]
+				self.table.setRowCount(self.table.rowCount()+1)
+				self.table.setItem(self.table.rowCount()-1,0,QTableWidgetItem(i))
+				self.table.setItem(self.table.rowCount()-1,1,QTableWidgetItem(j))
+				self.table.setItem(self.table.rowCount()-1,2,QTableWidgetItem(str(count_service)))
+				self.table.setItem(self.table.rowCount()-1,3,QTableWidgetItem(str(count_noservice)))
+		keys=self.finished_level.dic.keys()
+		li_A,li_B,li_C=self.finished_level.get_level()
+		for i in range(self.table.rowCount()):
+			if self.table.item(i,1).text() not in keys:
+				continue
+			self.table.setItem(i,3+1,QTableWidgetItem(self.finished_level.dic[self.table.item(i,1).text()][0]))
+			self.table.setItem(i,4+1,QTableWidgetItem(self.finished_level.dic[self.table.item(i,1).text()][1]))
+
+			if self.table.item(i,1).text() in li_A:
+				for j in range(6):
+					self.table.item(i,j).setBackground(QBrush(QColor(255,100,100)))
+			elif self.table.item(i,1).text() in li_B:
+				for j in range(6):
+					self.table.item(i,j).setBackground(QBrush(QColor(255,230,80)))
+			elif self.table.item(i,1).text() in li_C:
+				for j in range(6):
+					self.table.item(i,j).setBackground(QBrush(QColor(150,200,255)))
+			else:
+				pass
 
 '''
 待转出详细信息
@@ -925,98 +1091,6 @@ class WinWaitOut(QWidget):
 			else:
 				pass
 
-
-
-# '''
-# 待转出详细信息
-# '''
-# class WinCountQuery(QWidget):
-# 	def __init__(self,tablename,condition):
-# 		super().__init__()
-# 		self.tablename=tablename
-# 		self.condition=condition
-# 		self.initUI()
-
-# 	def initUI(self):
-# 		self.table=QTableWidget(0,0,self)
-# 		btn=QPushButton('详细信息',self)
-# 		btn.clicked.connect(self.btn_event)
-# 		vlayout=QVBoxLayout(self)
-# 		vlayout.addWidget(btn)
-# 		vlayout.addWidget(self.table)
-# 		self.setLayout(vlayout)
-# 		self.show()
-# 		self.data_process_count()
-
-
-# 	def btn_event(self):
-# 		sender = self.sender()
-# 		if sender.text()=='详细信息':
-# 			self.data_process_detail()
-# 			sender.setText('统计信息')
-# 		else:
-# 			self.data_process_count()
-# 			sender.setText('详细信息')
-
-# 	def data_process_detail(self):
-# 		print('详细信息处理')
-# 		self.table.setRowCount(0)
-# 		self.table.setColumnCount(13)
-# 		self.table.setHorizontalHeaderLabels(['主型号','系列号','批次','计划ID',\
-# 			'临时产品编码','不良现象','记录人','不良原因','维修人',\
-# 			'维修接收时间','维修接收人','产线接收时间','产线接收人'])
-# 		if self.condition=='待修':
-# 			cur.execute("select main_model,serial_num,batch_num,project_num,product_id,fault_name,note_person,service_result,\
-# 				service_person,in_time,in_person,out_time,out_person from "+self.tablename+" where state='待修' \
-# 				and service_result is null")
-# 		elif self.condition=='维修':
-# 			cur.execute("select main_model,serial_num,batch_num,project_num,product_id,fault_name,note_person,service_result,\
-# 				service_person,in_time,in_person,out_time,out_person from "+self.tablename+" where state='维修' and \
-# 				service_result is not null")
-# 		li=cur.fetchall()
-
-# 		conn.commit()
-# 		if len(li)==0:
-# 			return
-# 		self.table.setRowCount(len(li))
-# 		rowcount=0
-# 		for i in li:
-# 			columncount=0
-# 			for j in i:
-# 				self.table.setItem(rowcount,columncount,QTableWidgetItem(str(j)))
-# 				columncount+=1
-# 			rowcount+=1
-		
-
-
-# 	def data_process_count(self):
-# 		print('统计信息处理')
-# 		self.table.setRowCount(0)
-# 		self.table.setColumnCount(3)
-# 		self.table.setHorizontalHeaderLabels(['线别','计划ID','数量'])
-# 		if self.condition=='待修':
-# 			cur.execute("select note_person,project_num from "+self.tablename+" where state='待修' and service_result is null")
-# 		elif self.condition=='维修':
-# 			cur.execute("select note_person,project_num from "+self.tablename+" where state='维修' and service_result is not null")
-# 		li=cur.fetchall()
-# 		conn.commit()
-# 		if len(li)==0:
-# 			return
-# 		for x in li:
-# 			print(x)
-		
-# 		self.dfa=pd.DataFrame(np.array(li),columns=['A','B'])
-# 		li_line=self.dfa['A'].drop_duplicates().tolist()
-# 		for i in li_line:
-# 			li_id=self.dfa[self.dfa['A']==i]['B'].drop_duplicates().tolist()
-# 			df_temp=self.dfa[self.dfa['A']==i]
-# 			for j in li_id:
-# 				df_count=df_temp[df_temp['B']==j]
-# 				count=df_count.shape[0]
-# 				self.table.setRowCount(self.table.rowCount()+1)
-# 				self.table.setItem(self.table.rowCount()-1,0,QTableWidgetItem(i))
-# 				self.table.setItem(self.table.rowCount()-1,1,QTableWidgetItem(j))
-# 				self.table.setItem(self.table.rowCount()-1,2,QTableWidgetItem(str(count)))
 
 '''
 流转异常详细记录
@@ -1145,6 +1219,7 @@ class WinFlowCount(QWidget):
 		if len(li)==0:
 			return
 		self.table.setRowCount(0)
+		self.table_flow_out.setRowCount(0)
 		columns=['记录人','计划ID','维修结果','转入时间','转出时间','状态','转出接受人']
 		self.df=pd.DataFrame(np.array(li),columns=columns)
 		# print(self.df)
@@ -1230,6 +1305,158 @@ class WinFlowCount(QWidget):
 		writer.save()
 
 
+
+
+
+
+'''
+历史，根据日期，按线别，计划ID显示当天流转数量，待修数量，待转入数量
+'''
+class WinFlowCountByDate(QWidget):
+	def __init__(self,cur,conn,table_name):
+		super().__init__()
+		self.cur=cur
+		self.conn=conn
+		self.table_name=table_name
+		self.initUI()
+	def initUI(self):
+		label_date=QLabel('日期',self)
+		self.date_line=QDateEdit(QDate.currentDate(),self)
+		self.table=QTableWidget(0,3,self)
+		self.table.setHorizontalHeaderLabels(['线别','计划ID','转入维修'])
+		self.table_flow_out=QTableWidget(0,3,self)
+		self.table_flow_out.setHorizontalHeaderLabels(['线别','计划ID','转入产线'])
+		btn_flush=QPushButton('刷新',self)
+		btn_flush.clicked.connect(self.flush_event)
+
+		btn_export=QPushButton('存储为excel',self)
+		btn_export.clicked.connect(self.export_event)
+
+		hlayout=QHBoxLayout()
+		hlayout.addWidget(label_date,alignment=Qt.AlignRight)
+		hlayout.addWidget(self.date_line,alignment=Qt.AlignRight)
+		hlayout.addWidget(btn_export,alignment=Qt.AlignRight)
+		hlayout.addWidget(btn_flush,alignment=Qt.AlignRight)
+
+		vlayout=QVBoxLayout(self)
+		vlayout.addLayout(hlayout)
+		tabwidget=QTabWidget(self)
+		tabwidget.addTab(self.table,'转入统计')
+		tabwidget.addTab(self.table_flow_out,'转出统计')
+		vlayout.addWidget(tabwidget)
+
+		self.setLayout(vlayout)
+		self.show()
+
+	def flush_event(self):
+		def date_trans(s):
+			if s is None:
+				return s
+			if s=='None':
+				return s
+			str_date=str(s).split(' ')[0]
+			li_date=str_date.split('-')
+			year=int(li_date[0])
+			month=int(li_date[1])
+			day=int(li_date[2])
+			return str(datetime.date(year,month,day))
+
+		day=self.date_line.date().toString('yyyy-MM-dd')
+		day_add=self.date_line.date().addDays(1).toString('yyyy-MM-dd')
+		cur.execute("select note_person,project_num,service_result,in_time,out_time,state,out_person from "+self.table_name+" \
+			where (in_time >= %s and in_time < %s) or (out_time>=%s and out_time < %s)",(day,day_add,day,day_add))
+		li=cur.fetchall()
+		conn.commit()
+		if len(li)==0:
+			return
+		self.table.setRowCount(0)
+		self.table_flow_out.setRowCount(0)
+		columns=['记录人','计划ID','维修结果','转入时间','转出时间','状态','转出接受人']
+		self.df=pd.DataFrame(np.array(li),columns=columns)
+		# print(self.df)
+		
+		self.df['转入时间']=self.df['转入时间'].apply(date_trans)
+		self.df['转出时间']=self.df['转出时间'].apply(date_trans)
+		self.df=self.df.fillna(value='None')
+
+		print(self.df)
+
+		df_in=self.df[self.df['转入时间']==day]
+
+		li_line=df_in['记录人'].drop_duplicates().tolist()
+		for i in li_line:
+			df=df_in[df_in['记录人']==i]
+			li_id=df['计划ID'].drop_duplicates().tolist()
+			
+			for j in li_id:
+				df_temp=df[df['计划ID']==j]
+				# count_all=0
+				count_in=0
+				# count_out=0
+				# count_wait_in=0
+				# count_wait_service=0
+				# count_wait_out=0
+				# count_all=df_temp.shape[0]
+				count_in=df_temp[df_temp['转入时间']==day].shape[0]
+				# count_out=df_temp[df_temp['转出时间']==today].shape[0]
+				# count_wait_in=df_temp[df_temp['状态']=='待修'].shape[0]
+				# count_wait_service=df_temp[df_temp['维修结果']=='None'].shape[0]
+				# count_wait_out=df_temp[(df_temp['状态']=='维修')&(df_temp['维修结果']!='None')].shape[0]
+				# print(count_all,count_in,count_wait_in,count_wait_service,count_wait_out)
+				self.table.setRowCount(self.table.rowCount()+1)
+				self.table.setItem(self.table.rowCount()-1,0,QTableWidgetItem(str(i)))
+				self.table.setItem(self.table.rowCount()-1,1,QTableWidgetItem(str(j)))
+				self.table.setItem(self.table.rowCount()-1,2,QTableWidgetItem(str(count_in)))
+				# self.table.setItem(self.table.rowCount()-1,3,QTableWidgetItem(str(count_out)))
+				# self.table.setItem(self.table.rowCount()-1,4-1,QTableWidgetItem(str(count_wait_in)))
+				# self.table.setItem(self.table.rowCount()-1,5-1,QTableWidgetItem(str(count_wait_service)))
+				# self.table.setItem(self.table.rowCount()-1,6-1,QTableWidgetItem(str(count_wait_out)))
+				# self.table.setItem(self.table.rowCount()-1,7,QTableWidgetItem(str(count_all)))
+
+		self.df=self.df[(self.df['转出接受人'] != 'None')&(self.df['转出时间']==day)]
+		li_line=self.df['转出接受人'].drop_duplicates().tolist()
+		for i in li_line:
+			df=self.df[self.df['转出接受人']==i]
+			li_id=df['计划ID'].drop_duplicates().tolist()
+			
+			for j in li_id:
+				count_out=df[df['计划ID']==j].shape[0]
+				self.table_flow_out.setRowCount(self.table_flow_out.rowCount()+1)
+				self.table_flow_out.setItem(self.table_flow_out.rowCount()-1,0,QTableWidgetItem(str(i)))
+				self.table_flow_out.setItem(self.table_flow_out.rowCount()-1,1,QTableWidgetItem(str(j)))
+				self.table_flow_out.setItem(self.table_flow_out.rowCount()-1,2,QTableWidgetItem(str(count_out)))
+
+
+
+	def export_event(self):
+		if self.table.rowCount()==0:
+			return
+		li_df=[]
+
+		for i in range(self.table.rowCount()):
+			li_temp=[]
+			for j in range(self.table.columnCount()):
+				li_temp.append(self.table.item(i,j).text())
+			li_df.append(li_temp)
+		df=pd.DataFrame(li_df,columns=['线别','计划ID','转入维修'])
+
+		li_df_out=[]
+		for i in range(self.table_flow_out.rowCount()):
+			li_temp=[]
+			for j in range(self.table_flow_out.columnCount()):
+				li_temp.append(self.table_flow_out.item(i,j).text())
+			li_df_out.append(li_temp)
+		df_out=pd.DataFrame(li_df_out,columns=['线别','计划ID','转入产线'])
+
+		filename=QFileDialog.getSaveFileName(self,'存储为','D:/流转统计','xlsx')
+		if filename[0]=='':
+			return
+		writer = ExcelWriter(filename[0]+'.'+filename[1])
+		df.to_excel(writer,sheet_name='转入维修')
+		df_out.to_excel(writer,sheet_name='转入产线')
+
+
+		writer.save()
 
 '''
 对账

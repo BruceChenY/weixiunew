@@ -7,7 +7,10 @@ class PlanMassage():
 	def get_json(self,project_id):
 		project_id=str(project_id)
 		s=project_id+'MD5'+project_id+'dj'
-		m=hashlib.md5(s.encode('ascii')).hexdigest()
+		try:
+			m=hashlib.md5(s.encode('ascii')).hexdigest()
+		except:
+			return 'fail','数据获取失败'
 		print(m)
 		s='http://192.168.30.230/jiekou/OrderInfoGet_ById/?id='+project_id+'&CheckCode='+m
 		try:

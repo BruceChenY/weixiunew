@@ -25,12 +25,12 @@ from dataquery import *
 from faultmanager import *
 from manager import *
 from dataprocess import WinDataProcess
+from completelineedit import CompleteLineEdit
+import jieba
 
 '''
 产品信息栏，根据计划ID获取信息，设置内容，获取内容，设置widget是否使能
-
 '''
-
 class ProductBaseMassage(QGroupBox):
 	def __init__(self,li_product_type=['整机','模组','单板'],dic_main_model={},dic_model={},li_process_status=[],li_line_name=[]):
 		super().__init__('产品信息')
@@ -141,13 +141,13 @@ class ProductBaseMassage(QGroupBox):
 
 		self.setLayout(glayout)
 
-'''
-只有维修员账号初始化时调用此方法，目的是在此有一个对结果登记栏的引用，
-当事业部发生改变时能够改变结果登记栏故障现象自动匹配的内容
-'''
+	'''
+	只有维修员账号初始化时调用此方法，目的是在此有一个对结果登记栏的引用，
+	当事业部发生改变时能够改变结果登记栏故障现象自动匹配的内容
+	'''
 	def add_parent(self,parent):
 		self.parent=parent
-		
+
 	def main_model_changed(self,main_model):
 		print('main_model>>>>>',main_model)
 		if main_model=='':
@@ -229,9 +229,8 @@ class ProductBaseMassage(QGroupBox):
 		self.dic_widget['生产日期'].setEnabled(flag)
 		self.dic_widget['单板名称'].setEnabled(flag)
 
-
-
 	def project_num_textChanged(self,text):
+
 		if text=='':
 			dic={}
 			dic['主型号']=''
@@ -256,8 +255,6 @@ class ProductBaseMassage(QGroupBox):
 	def change_parent_fault_model(self,text):
 		if self.parent is not None:
 			self.parent.change_fault_name(text)
-	
-
 
 	def product_type_changed(self,text):
 		if text=='模组':
@@ -277,9 +274,7 @@ class ProductFaultMassage(QGroupBox):
 		self.product_base=product_base
 		self.note_record=note_record
 		self.li_btn=[]
-
-		self.initUI()
-		
+		self.initUI()		
 		self.show()
 	def initUI(self):
 		label_product_num=QLabel('产品编码',self)
@@ -362,7 +357,7 @@ class ProductFaultMassage(QGroupBox):
 		conn.commit()
 		self.line_product_num.setText('')
 		self.line_product_num.setFocus()
-		self.note_record.set_table([project_num,main_model,line_name,process_status,fault_type,note_person,\
+		self.note_record.set_table([project_num,batch,main_model,product_num,line_name,process_status,fault_type,note_person,\
 			note_time,'','',''])
 
 
@@ -391,7 +386,9 @@ class ProductServiceMassage(QGroupBox):
 		label_work_hour=QLabel('维修工时',self)
 
 		self.line_product_num=QLineEdit(self)
-		self.line_fault_name=QLineEdit(self)
+		# self.line_fault_name=QLineEdit(self)
+		self.line_fault_name=CompleteLineEdit(self)
+		
 		self.line_fault_cause=QLineEdit(self)
 		self.line_comment=QLineEdit(self)
 		self.line_work_hour=QLineEdit(self)
@@ -399,20 +396,21 @@ class ProductServiceMassage(QGroupBox):
 		self.comb_service_result.setEditable(True)
 		self.comb_service_result.addItems(['修复','报废'])
 
-		strmodel_jr=QStringListModel(self)
-		strmodel_jr.setStringList(self.li_fault_jr)
-		self.completer_jr = QCompleter(self)
-		self.completer_jr.setCaseSensitivity(Qt.CaseInsensitive)
-		self.completer_jr.setModel(strmodel_jr)
+		# strmodel_jr=QStringListModel(self)
+		# strmodel_jr.setStringList(self.li_fault_jr)
+		# self.completer_jr = QCompleter(self)
+		# self.completer_jr.setCaseSensitivity(Qt.CaseInsensitive)
+		# self.completer_jr.setModel(strmodel_jr)
 	
 
-		strmodel_yd=QStringListModel(self)
-		strmodel_yd.setStringList(self.li_fault_yd)
-		self.completer_yd = QCompleter(self)
-		self.completer_yd.setCaseSensitivity(Qt.CaseInsensitive)
-		self.completer_yd.setModel(strmodel_yd)
+		# strmodel_yd=QStringListModel(self)
+		# strmodel_yd.setStringList(self.li_fault_yd)
+		# self.completer_yd = QCompleter(self)
+		# self.completer_yd.setCaseSensitivity(Qt.CaseInsensitive)
+		# self.completer_yd.setModel(strmodel_yd)
 
-		self.line_fault_name.setCompleter(self.completer_yd)
+		# self.line_fault_name.setCompleter(self.completer_yd)
+		self.line_fault_name.setModel(self.li_fault_yd)
 
 
 		btn_more=QPushButton('故障表',self)
@@ -445,9 +443,11 @@ class ProductServiceMassage(QGroupBox):
 
 	def change_fault_name(self,partment):
 		if partment=='金融':
-			self.line_fault_name.setCompleter(self.completer_jr)
+			# self.line_fault_name.setCompleter(self.completer_jr)
+			self.line_fault_name.setModel(self.li_fault_jr)
 		if partment=='移动':
-			self.line_fault_name.setCompleter(self.completer_yd)
+			# self.line_fault_name.setCompleter(self.completer_yd)
+			self.line_fault_name.setModel(self.li_fault_yd)
 
 
 	def product_num_finish(self):
@@ -576,6 +576,7 @@ class ProductServiceMassage(QGroupBox):
 		if self.note_type=='更新':
 			self.note_update()
 		dic=self.get_content()
+		self.line_product_num.setFocus()
 		
 
 	def parse_fault(self):
@@ -629,19 +630,25 @@ class ProductServiceMassage(QGroupBox):
 					     dic['维修工时'],user_name,service_time,user_name,service_time,dic['备注'],'1',\
 					     dic['故障分类'],dic['故障分类'],dic['维修结果'],dic['单板名称'],''))
 			conn.commit()
-			self.note_record.set_table([dic['计划ID'],dic['主型号'],dic['线别'],dic['制程状态'],dic['故障名称'],\
+			self.note_record.set_table([dic['计划ID'],dic['批次'],dic['主型号'],dic['产品编码'],dic['线别'],dic['制程状态'],dic['故障名称'],\
 				'','',dic['不良原因'],user_name,str(datetime.datetime.now())[0:19]])
 			self.view_work_hour.flush_event()
 			self.data_init()
 		if dic['产品编码']!='':
-			# cur.execute("select state from "+table_name+" where product_id=%s \
-			#  and service_result is null",(dic['产品编码']))
-			# li=cur.fetchall()
-			# state=li[0][0]
-			# if state=='待修':
-			# 	QMessageBox(text=' 请先将该机转入后再登记结果！',parent=self).show()
-			# 	return
-			
+
+			'''
+			防止已修但没转出的机器又登记了一遍
+			'''
+			cur.execute("select id from "+table_name+" where product_id=%s and state='维修'",(dic['产品编码']))
+			li=cur.fetchall()
+			conn.commit()
+			if len(li)>0:
+				QMessageBox(text=' 流转状态错误，无法登记！',parent=self).show()
+				return
+
+			'''
+			有编码需要查询历史维修次数
+			'''
 			cur.execute("select count(id) from "+table_name+" where product_id=%s and \
 				project_num=%s",(dic['产品编码'],dic['计划ID']))
 			li=cur.fetchall()
@@ -659,7 +666,7 @@ class ProductServiceMassage(QGroupBox):
 					     dic['维修工时'],user_name,service_time,user_name,service_time,dic['备注'],service_count,\
 					     dic['故障分类'],dic['故障分类'],dic['维修结果'],dic['单板名称'],''))
 			conn.commit()
-			self.note_record.set_table([dic['计划ID'],dic['主型号'],dic['线别'],dic['制程状态'],dic['故障名称'],\
+			self.note_record.set_table([dic['计划ID'],dic['批次'],dic['主型号'],dic['产品编码'],dic['线别'],dic['制程状态'],dic['故障名称'],\
 				'','',dic['不良原因'],user_name,str(datetime.datetime.now())[0:19]])
 			self.view_work_hour.flush_event()
 			self.data_init()
@@ -694,7 +701,7 @@ class ProductServiceMassage(QGroupBox):
 				dic['维修工时'],dic['维修结果'],service_count,dic['故障代码'],\
 				dic['故障名称'],dic['故障分类'],self.record_id))
 		conn.commit()
-		self.note_record.set_table([dic['计划ID'],dic['主型号'],dic['线别'],dic['制程状态'],dic['故障名称'],\
+		self.note_record.set_table([dic['计划ID'],dic['批次'],dic['主型号'],dic['产品编码'],dic['线别'],dic['制程状态'],dic['故障名称'],\
 			'','',dic['不良原因'],user_name,str(datetime.datetime.now())[0:19]])
 		self.view_work_hour.flush_event()
 		self.data_init()
@@ -712,7 +719,9 @@ class ProductServiceMassage(QGroupBox):
 		self.product_base.set_content(self.dic_old_base_massage)
 
 
-
+'''
+工时显示，刷新
+'''
 class ViewWorkHour(QWidget):
 	def __init__(self):
 		super().__init__()
@@ -752,13 +761,16 @@ class ViewWorkHour(QWidget):
 		conn.commit()
 		self.label_hour_count.setText(str(h1+h2))
 
+'''
+显示自软件开启登入记录
+'''
 class ViewNoteRocord(QWidget):
 	def __init__(self):
 		super().__init__()
 		self.initUI()
 	def initUI(self):
-		self.table=QTableWidget(0,10,self)
-		self.table.setHorizontalHeaderLabels(['计划ID','型号','线别','制程状态','不良现象','记录人',\
+		self.table=QTableWidget(0,12,self)
+		self.table.setHorizontalHeaderLabels(['计划ID','批次','型号','产品编码','线别','制程状态','不良现象','记录人',\
 			'录入日期','不良原因','维修人','维修日期'])
 		vlayout=QVBoxLayout(self)
 		vlayout.addWidget(self.table)
@@ -809,6 +821,10 @@ class ChooseFault(QScrollArea):
 		# self.lineedit.setModified(True)
 		self.close()
 
+
+'''
+以临时编码查询所有记录
+'''
 class QueryByProductNum(QWidget):
 	def __init__(self):
 		super().__init__()
@@ -867,6 +883,10 @@ class QueryByProductNum(QWidget):
 				columncount+=1
 			rowcount+=1
 
+
+'''
+弹窗消息，显示历史维修记录
+'''
 class Massage(QDialog):
 	def __init__(self,content,title='警告',header='',msgtype='msg',table_header=[],parent=None):
 		super().__init__(parent)
@@ -1130,80 +1150,14 @@ class MainWindow(QMainWindow):
 		self.widget=MainWidget()
 		self.setCentralWidget(self.widget)
 		menubar=self.menuBar()
-		# if managerlimit.get_limit('输出文件'):
-		# 	outfile_jr=QAction('输出到excel（金融）',self)
-		# 	outfile_jr.triggered.connect(self.outfile_event_jr)
-			
-		# 	filemenu=menubar.addMenu('文件')
-		# 	filemenu.addAction(outfile_jr)
-		# 	outfile_yd=QAction('输出到excel（移动）',self)
-		# 	outfile_yd.triggered.connect(self.outfile_event_yd)
-		# 	menubar=self.menuBar()
-		# 	# filemenu=menubar.addMenu('文件')
-		# 	filemenu.addAction(outfile_yd)
-		# 	outfile_pivot=QAction('输出到excel（数据统计）',self)
-		# 	outfile_pivot.triggered.connect(self.outfile_pivot)
-		# 	menubar=self.menuBar()
-		# 	filemenu.addAction(outfile_pivot)
-
 		setmenu=menubar.addMenu('设置')
 		modify_password=QAction('修改密码',self)
 		modify_password.triggered.connect(self.modify_password)
 		setmenu.addAction(modify_password)
 
 		self.setWindowTitle('维修登记软件'+version+'--'+user_name)
-		
-		# self.resize(800,500)
 		self.show()
-	# def outfile_event_jr(self):
-	# 	print('outfile')
-	# 	# print(self.widget.win_tab2.dfa_temp)
-	# 	if self.widget.win_tab2.dfa_temp is None:
-	# 		return
-	# 	else:
-	# 		df=self.widget.win_tab2.dfa_temp
-	# 		df.columns=self.widget.win_tab2.table_columns
-	# 		print(df)
-	# 		filename=QFileDialog.getSaveFileName(self,'存储为','D:/维修明细(金融)','xlsx')
-	
-	# 		if filename[0]=='':
-	# 			return
-	# 		df.to_excel(filename[0]+'.'+filename[1],sheet_name='维修明细')
 
-	# def outfile_event_yd(self):
-	# 	print('outfile')
-	# 	# print(self.widget.win_tab2.dfa_temp)
-	# 	if self.widget.win_tab2_yd.dfa_temp is None:
-	# 		return
-	# 	else:
-	# 		df=self.widget.win_tab2_yd.dfa_temp
-	# 		df.columns=self.widget.win_tab2_yd.table_columns
-	# 		print(df)
-	# 		filename=QFileDialog.getSaveFileName(self,'存储为','D:/维修明细(移动)','xlsx')
-
-	# 		if filename[0]=='':
-	# 			return
-	# 		df.to_excel(filename[0]+'.'+filename[1],sheet_name='维修明细')
-	# def outfile_pivot(self):
-	# 	print('outfile')
-	# 	# print(self.widget.win_tab2.dfa_temp)
-	# 	if self.widget.frame_query.dfa_temp is None:
-	# 		return
-
-	# 	else:
-	# 		df=self.widget.frame_query.dfa_temp
-	# 		df.columns=self.widget.frame_query.table_columns
-	# 		filename=QFileDialog.getSaveFileName(self,'存储为','D:/维修明细数据统计','xlsx')
-
-	# 		if filename[0]=='':
-	# 			return
-	# 		writer = ExcelWriter(filename[0]+'.'+filename[1])
-	# 		df.to_excel(writer,sheet_name='维修明细')
-	# 		df=self.widget.frame_query.df_pivot
-	# 		df.to_excel(writer,sheet_name='数据统计')
-	# 		df=self.widget.frame_query.df_pivot1
-	# 		df.to_excel(writer,sheet_name='数据统计1')
-	# 		writer.save()
 	def modify_password(self):
 		self.win_modify_password=WinModifyPassword()
 
@@ -1215,6 +1169,7 @@ class WinModifyPassword(QWidget):
 	def __init__(self):
 		super().__init__()
 		self.initUI()
+
 	def initUI(self):
 		label_old=QLabel('旧密码',self)
 		label_new=QLabel('新密码',self)
@@ -1247,6 +1202,7 @@ class WinModifyPassword(QWidget):
 		if self.line_new.text()!=self.line_new1.text():
 			QMessageBox(text='   密码不一致！  ',parent=self).show()
 			return
+
 		password=self.line_new.text()
 		password_old=self.line_old.text()
 		if not bcrypt.checkpw(password_old.encode('ascii'),password_true.encode('ascii')):
@@ -1320,6 +1276,9 @@ class LoginFrame(QWidget):
 			user_name=nameloc
 			self.close()
 			managerlimit=ManageLimit()
+			sg=jieba.cut('按键不良')
+			for i in sg:
+				print(i)
 			self.win=MainWindow()
 		else:
 			self.text_pw.setText('')
@@ -1337,12 +1296,15 @@ def connDB():
 
 if __name__=='__main__':
 	app=QApplication(sys.argv)
-
+	# splash=QSplashScreen(QPixmap('test.jpg'))
+	# splash.show()
+	# time.sleep(3)
+	# app.processEvents()
 	conn,cur=connDB()
 	user_name=''
 	managerlimit=None
 
-	version='4.01'
+	version='4.2'
 	run_flag=True
 	cur.execute("select version_num_l,version_num_h from version_control")
 	li=cur.fetchall()
@@ -1360,5 +1322,6 @@ if __name__=='__main__':
 
 	if run_flag:
 		logframe=LoginFrame()
+	# splash.finish(q)
 	sys.exit(app.exec_())
 
