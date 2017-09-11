@@ -50,7 +50,6 @@ class FinishLevel():
 				continue
 			finished_time=self.plan_num_event(i[0])
 			print('计划ID:',i[0],'  完成时间：',finished_time)
-			
 			if finished_time is None:
 				QMessageBox(text='   接口服务器异常！  ',parent=self).show()
 				return 'fail'
@@ -93,7 +92,7 @@ class FinishLevel():
 			QMessageBox(text='   查询不到该计划id！  ',parent=self).show()
 			return	
 
-		self.dic[project_num]=[j['启动时间'],j['完成时间']]
+		self.dic[project_num]=[j['启动时间'],j['完成时间'],j['主型号'],j['型号']]
 		return j['完成时间']
 
 
@@ -108,6 +107,7 @@ class WinWaitService(QWidget):
 		self.finished_level=finished_level
 		self.title=title
 		self.initUI()
+
 	def initUI(self):
 		btn=QPushButton('详细信息',self)
 		btn.clicked.connect(self.btn_event)
@@ -204,8 +204,8 @@ class WinWaitService(QWidget):
 	def data_process_count(self):
 		print('统计信息处理')
 		self.table.setRowCount(0)
-		self.table.setColumnCount(5)
-		self.table.setHorizontalHeaderLabels(['线别','计划ID','数量','启动时间','结束时间'])
+		self.table.setColumnCount(7)
+		self.table.setHorizontalHeaderLabels(['线别','计划ID','主型号','型号','数量','启动时间','结束时间'])
 
 		cur.execute("select note_person,project_num from "+self.tablename+" where state<>'完成' and \
 			service_result is null")
@@ -256,23 +256,28 @@ class WinWaitService(QWidget):
 				self.table.setRowCount(self.table.rowCount()+1)
 				self.table.setItem(self.table.rowCount()-1,0,QTableWidgetItem(i))
 				self.table.setItem(self.table.rowCount()-1,1,QTableWidgetItem(j))
-				self.table.setItem(self.table.rowCount()-1,2,QTableWidgetItem(str(count)))
+
+				self.table.setItem(self.table.rowCount()-1,2,QTableWidgetItem(self.finished_level.dic[j][2]))
+				self.table.setItem(self.table.rowCount()-1,3,QTableWidgetItem(self.finished_level.dic[j][3]))
+
+				self.table.setItem(self.table.rowCount()-1,4,QTableWidgetItem(str(count)))
+
 		print(self.finished_level.dic)
 		
 		for i in range(self.table.rowCount()):
 			if self.table.item(i,1).text() not in keys:
 				continue
-			self.table.setItem(i,3,QTableWidgetItem(self.finished_level.dic[self.table.item(i,1).text()][0]))
-			self.table.setItem(i,4,QTableWidgetItem(self.finished_level.dic[self.table.item(i,1).text()][1]))
+			self.table.setItem(i,5,QTableWidgetItem(self.finished_level.dic[self.table.item(i,1).text()][0]))
+			self.table.setItem(i,6,QTableWidgetItem(self.finished_level.dic[self.table.item(i,1).text()][1]))
 
 			if self.table.item(i,1).text() in li_A:
-				for j in range(5):
+				for j in range(7):
 					self.table.item(i,j).setBackground(QBrush(QColor(255,100,100)))
 			elif self.table.item(i,1).text() in li_B:
-				for j in range(5):
+				for j in range(7):
 					self.table.item(i,j).setBackground(QBrush(QColor(255,230,80)))
 			elif self.table.item(i,1).text() in li_C:
-				for j in range(5):
+				for j in range(7):
 					self.table.item(i,j).setBackground(QBrush(QColor(150,200,255)))
 			else:
 				pass
@@ -436,9 +441,9 @@ class WinFlowState(QWidget):
 		def label_event_C(s):
 			self.winwaitservice=WinWaitService(self.tablename,self.finished_level,title='待维修(后天及以后完成计划)')
 		def label_event_in(s):
-			self.winin=WinWaitIn(self.tablename,self.finished_level)
+			self.winin=WinWaitIn(self.tablename,self.finished_level,'待转入维修数量')
 		def label_event_out(s):
-			self.winin=WinWaitOut(self.tablename,self.finished_level)
+			self.winin=WinWaitIn(self.tablename,self.finished_level,'待转入产线数量')
 		def label_event_error(s):
 			self.winerror=WinFlowError(self.tablename)
 
@@ -705,13 +710,14 @@ class WinFlowState(QWidget):
 
 		
 '''
-待转入详细信息
+待转入及待转出详细信息
 '''
 class WinWaitIn(QWidget):
-	def __init__(self,tablename,finished_level):
+	def __init__(self,tablename,finished_level,condition):
 		super().__init__()
 		self.tablename=tablename
 		self.finished_level=finished_level
+		self.condition=condition
 		self.initUI()
 
 	def initUI(self):
@@ -727,6 +733,7 @@ class WinWaitIn(QWidget):
 		vlayout.addWidget(btn)
 		vlayout.addWidget(self.table)
 		self.setLayout(vlayout)
+		self.setWindowTitle(self.condition)
 		self.show()
 		self.data_process_count()
 
@@ -742,8 +749,10 @@ class WinWaitIn(QWidget):
 
 	def data_process_detail(self):
 		print('详细信息处理')
+	
 		cur.execute("select project_num from "+self.tablename+" where service_result is null and \
 			state='待修' group by project_num")
+		
 		li=cur.fetchall()
 		conn.commit()
 		print('list of project_num:',li)
@@ -754,9 +763,14 @@ class WinWaitIn(QWidget):
 		self.table.setHorizontalHeaderLabels(['主型号','系列号','批次','计划ID',\
 			'临时产品编码','不良现象','记录人','记录时间','启动时间','结束时间'])
 
-		cur.execute("select main_model,serial_num,batch_num,project_num,product_id,fault_class2,note_person,\
-			note_date from "+self.tablename+" where state='待修' \
-			and service_result is null")
+		if self.condition=='待转入维修数量':
+			cur.execute("select main_model,serial_num,batch_num,project_num,product_id,fault_class2,note_person,\
+				note_date from "+self.tablename+" where state='待修' \
+				and service_result is null")
+		if self.condition=='待转入产线数量':
+			cur.execute("select main_model,serial_num,batch_num,project_num,product_id,fault_name,note_person,\
+				note_date,service_person,service_result,service_date from "+self.tablename+" where state='维修' \
+				and service_result is not null")
 		
 		li=cur.fetchall()
 
@@ -795,10 +809,14 @@ class WinWaitIn(QWidget):
 	def data_process_count(self):
 		print('统计信息处理')
 		self.table.setRowCount(0)
-		self.table.setColumnCount(5)
-		self.table.setHorizontalHeaderLabels(['线别','计划ID','数量','启动时间','结束时间'])
-		cur.execute("select note_person,project_num from "+self.tablename+" where state='待修' and \
-			service_result is null")
+		self.table.setColumnCount(7)
+		self.table.setHorizontalHeaderLabels(['线别','计划ID','主型号','型号','数量','启动时间','结束时间'])
+		if self.condition=='待转入维修数量':
+			cur.execute("select note_person,project_num from "+self.tablename+" where state='待修' and \
+				service_result is null")
+		if self.condition=='待转入产线数量':
+			cur.execute("select note_person,project_num from "+self.tablename+" where state='维修' and \
+				service_result is not null")
 		li=cur.fetchall()
 		conn.commit()
 		if len(li)==0:
@@ -815,7 +833,11 @@ class WinWaitIn(QWidget):
 				self.table.setRowCount(self.table.rowCount()+1)
 				self.table.setItem(self.table.rowCount()-1,0,QTableWidgetItem(i))
 				self.table.setItem(self.table.rowCount()-1,1,QTableWidgetItem(j))
-				self.table.setItem(self.table.rowCount()-1,2,QTableWidgetItem(str(count)))
+
+				self.table.setItem(self.table.rowCount()-1,2,QTableWidgetItem(self.finished_level.dic[j][2]))
+				self.table.setItem(self.table.rowCount()-1,3,QTableWidgetItem(self.finished_level.dic[j][3]))
+
+				self.table.setItem(self.table.rowCount()-1,4,QTableWidgetItem(str(count)))
 		
 
 		print(self.finished_level.dic)
@@ -826,17 +848,17 @@ class WinWaitIn(QWidget):
 		for i in range(self.table.rowCount()):
 			if self.table.item(i,1).text() not in keys:
 				continue
-			self.table.setItem(i,3,QTableWidgetItem(self.finished_level.dic[self.table.item(i,1).text()][0]))
-			self.table.setItem(i,4,QTableWidgetItem(self.finished_level.dic[self.table.item(i,1).text()][1]))
+			self.table.setItem(i,5,QTableWidgetItem(self.finished_level.dic[self.table.item(i,1).text()][0]))
+			self.table.setItem(i,6,QTableWidgetItem(self.finished_level.dic[self.table.item(i,1).text()][1]))
 
 			if self.table.item(i,1).text() in li_A:
-				for j in range(5):
+				for j in range(7):
 					self.table.item(i,j).setBackground(QBrush(QColor(255,100,100)))
 			elif self.table.item(i,1).text() in li_B:
-				for j in range(5):
+				for j in range(7):
 					self.table.item(i,j).setBackground(QBrush(QColor(255,230,80)))
 			elif self.table.item(i,1).text() in li_C:
-				for j in range(5):
+				for j in range(7):
 					self.table.item(i,j).setBackground(QBrush(QColor(150,200,255)))
 			else:
 				pass
@@ -923,8 +945,8 @@ class WinLave(QWidget):
 	def data_process_count(self):
 		print('统计信息处理')
 		self.table.setRowCount(0)
-		self.table.setColumnCount(6)
-		self.table.setHorizontalHeaderLabels(['线别','计划ID','已修数量','待修数量','启动时间','结束时间'])
+		self.table.setColumnCount(8)
+		self.table.setHorizontalHeaderLabels(['线别','计划ID','主型号','型号','已修数量','待修数量','启动时间','结束时间'])
 		cur.execute("select note_person,project_num,service_person from "+self.tablename+" where state='维修'")
 		li=cur.fetchall()
 		conn.commit()
@@ -945,151 +967,155 @@ class WinLave(QWidget):
 				self.table.setRowCount(self.table.rowCount()+1)
 				self.table.setItem(self.table.rowCount()-1,0,QTableWidgetItem(i))
 				self.table.setItem(self.table.rowCount()-1,1,QTableWidgetItem(j))
-				self.table.setItem(self.table.rowCount()-1,2,QTableWidgetItem(str(count_service)))
-				self.table.setItem(self.table.rowCount()-1,3,QTableWidgetItem(str(count_noservice)))
+
+				self.table.setItem(self.table.rowCount()-1,2,QTableWidgetItem(self.finished_level.dic[j][2]))
+				self.table.setItem(self.table.rowCount()-1,3,QTableWidgetItem(self.finished_level.dic[j][3]))
+
+				self.table.setItem(self.table.rowCount()-1,2+2,QTableWidgetItem(str(count_service)))
+				self.table.setItem(self.table.rowCount()-1,3+2,QTableWidgetItem(str(count_noservice)))
 		keys=self.finished_level.dic.keys()
 		li_A,li_B,li_C=self.finished_level.get_level()
 		for i in range(self.table.rowCount()):
 			if self.table.item(i,1).text() not in keys:
 				continue
-			self.table.setItem(i,3+1,QTableWidgetItem(self.finished_level.dic[self.table.item(i,1).text()][0]))
-			self.table.setItem(i,4+1,QTableWidgetItem(self.finished_level.dic[self.table.item(i,1).text()][1]))
+			self.table.setItem(i,3+3,QTableWidgetItem(self.finished_level.dic[self.table.item(i,1).text()][0]))
+			self.table.setItem(i,4+3,QTableWidgetItem(self.finished_level.dic[self.table.item(i,1).text()][1]))
 
 			if self.table.item(i,1).text() in li_A:
-				for j in range(6):
+				for j in range(8):
 					self.table.item(i,j).setBackground(QBrush(QColor(255,100,100)))
 			elif self.table.item(i,1).text() in li_B:
-				for j in range(6):
+				for j in range(8):
 					self.table.item(i,j).setBackground(QBrush(QColor(255,230,80)))
 			elif self.table.item(i,1).text() in li_C:
-				for j in range(6):
+				for j in range(8):
 					self.table.item(i,j).setBackground(QBrush(QColor(150,200,255)))
 			else:
 				pass
 
-'''
-待转出详细信息
-'''
+# '''
+# 待转出详细信息
+# '''
 
-class WinWaitOut(QWidget):
-	def __init__(self,tablename,finished_level):
-		super().__init__()
-		self.tablename=tablename
-		self.finished_level=finished_level
-		self.initUI()
+# class WinWaitOut(QWidget):
+# 	def __init__(self,tablename,finished_level):
+# 		super().__init__()
+# 		self.tablename=tablename
+# 		self.finished_level=finished_level
+# 		self.initUI()
 
-	def initUI(self):
-		self.table=QTableWidget(0,0,self)
-		self.table.horizontalHeader().setSortIndicator(0, Qt.AscendingOrder)
-		self.table.horizontalHeader().setSortIndicatorShown(True)
-		self.table.horizontalHeader().sectionClicked.connect(self.table.sortByColumn)
-		btn=QPushButton('详细信息',self)
-		btn.clicked.connect(self.btn_event)
-		vlayout=QVBoxLayout(self)
-		vlayout.addWidget(btn)
-		vlayout.addWidget(self.table)
-		self.setLayout(vlayout)
-		self.show()
-		self.data_process_count()
+# 	def initUI(self):
+# 		self.table=QTableWidget(0,0,self)
+# 		self.table.horizontalHeader().setSortIndicator(0, Qt.AscendingOrder)
+# 		self.table.horizontalHeader().setSortIndicatorShown(True)
+# 		self.table.horizontalHeader().sectionClicked.connect(self.table.sortByColumn)
+# 		btn=QPushButton('详细信息',self)
+# 		btn.clicked.connect(self.btn_event)
+# 		vlayout=QVBoxLayout(self)
+# 		vlayout.addWidget(btn)
+# 		vlayout.addWidget(self.table)
+# 		self.setLayout(vlayout)
+# 		self.show()
+# 		self.data_process_count()
 
 
-	def btn_event(self):
-		sender = self.sender()
-		if sender.text()=='详细信息':
-			self.data_process_detail()
-			sender.setText('统计信息')
-		else:
-			self.data_process_count()
-			sender.setText('详细信息')
+# 	def btn_event(self):
+# 		sender = self.sender()
+# 		if sender.text()=='详细信息':
+# 			self.data_process_detail()
+# 			sender.setText('统计信息')
+# 		else:
+# 			self.data_process_count()
+# 			sender.setText('详细信息')
 
-	def data_process_detail(self):
-		print('详细信息处理')
-		self.table.setRowCount(0)
-		self.table.setColumnCount(13)
-		self.table.setHorizontalHeaderLabels(['主型号','系列号','批次','计划ID',\
-			'临时产品编码','不良现象','记录人','记录时间','维修人','维修结果','维修时间','启动时间','结束时间'])
+# 	def data_process_detail(self):
+# 		print('详细信息处理')
+# 		self.table.setRowCount(0)
+# 		self.table.setColumnCount(13)
+# 		self.table.setHorizontalHeaderLabels(['主型号','系列号','批次','计划ID',\
+# 			'临时产品编码','不良现象','记录人','记录时间','维修人','维修结果','维修时间','启动时间','结束时间'])
 
-		cur.execute("select main_model,serial_num,batch_num,project_num,product_id,fault_name,note_person,\
-			note_date,service_person,service_result,service_date from "+self.tablename+" where state='维修' \
-			and service_result is not null")
+# 		cur.execute("select main_model,serial_num,batch_num,project_num,product_id,fault_name,note_person,\
+# 			note_date,service_person,service_result,service_date from "+self.tablename+" where state='维修' \
+# 			and service_result is not null")
 		
-		li=cur.fetchall()
+# 		li=cur.fetchall()
 
-		conn.commit()
-		if len(li)==0:
-			return
-		self.table.setRowCount(len(li))
-		rowcount=0
-		for i in li:
-			columncount=0
-			for j in i:
-				self.table.setItem(rowcount,columncount,QTableWidgetItem(str(j)))
-				columncount+=1
-			rowcount+=1
+# 		conn.commit()
+# 		if len(li)==0:
+# 			return
+# 		self.table.setRowCount(len(li))
+# 		rowcount=0
+# 		for i in li:
+# 			columncount=0
+# 			for j in i:
+# 				self.table.setItem(rowcount,columncount,QTableWidgetItem(str(j)))
+# 				columncount+=1
+# 			rowcount+=1
 
-		keys=self.finished_level.dic.keys()
-		li_A,li_B,li_C=self.finished_level.get_level()
-		for i in range(self.table.rowCount()):
-			if self.table.item(i,3).text() not in keys:
-				continue
-			self.table.setItem(i,11,QTableWidgetItem(self.finished_level.dic[self.table.item(i,3).text()][0]))
-			self.table.setItem(i,12,QTableWidgetItem(self.finished_level.dic[self.table.item(i,3).text()][1]))
+# 		keys=self.finished_level.dic.keys()
+# 		li_A,li_B,li_C=self.finished_level.get_level()
+# 		for i in range(self.table.rowCount()):
+# 			if self.table.item(i,3).text() not in keys:
+# 				continue
+# 			self.table.setItem(i,11,QTableWidgetItem(self.finished_level.dic[self.table.item(i,3).text()][0]))
+# 			self.table.setItem(i,12,QTableWidgetItem(self.finished_level.dic[self.table.item(i,3).text()][1]))
 
-			if self.table.item(i,3).text() in li_A:
-				for j in range(13):
-					self.table.item(i,j).setBackground(QBrush(QColor(255,100,100)))
-			elif self.table.item(i,3).text() in li_B:
-				for j in range(13):
-					self.table.item(i,j).setBackground(QBrush(QColor(255,230,80)))
-			elif self.table.item(i,3).text() in li_C:
-				for j in range(13):
-					self.table.item(i,j).setBackground(QBrush(QColor(150,200,255)))
-			else:
-				pass
+# 			if self.table.item(i,3).text() in li_A:
+# 				for j in range(13):
+# 					self.table.item(i,j).setBackground(QBrush(QColor(255,100,100)))
+# 			elif self.table.item(i,3).text() in li_B:
+# 				for j in range(13):
+# 					self.table.item(i,j).setBackground(QBrush(QColor(255,230,80)))
+# 			elif self.table.item(i,3).text() in li_C:
+# 				for j in range(13):
+# 					self.table.item(i,j).setBackground(QBrush(QColor(150,200,255)))
+# 			else:
+# 				pass
 
-	def data_process_count(self):
-		print('统计信息处理')
-		self.table.setRowCount(0)
-		self.table.setColumnCount(5)
-		self.table.setHorizontalHeaderLabels(['线别','计划ID','数量','启动时间','结束时间'])
-		cur.execute("select note_person,project_num from "+self.tablename+" where state='维修' and \
-			service_result is not null")
-		li=cur.fetchall()
-		conn.commit()
-		if len(li)==0:
-			return
+# 	def data_process_count(self):
+# 		print('统计信息处理')
+# 		self.table.setRowCount(0)
+# 		self.table.setColumnCount(5)
+# 		self.table.setHorizontalHeaderLabels(['线别','计划ID','数量','启动时间','结束时间'])
+# 		cur.execute("select note_person,project_num from "+self.tablename+" where state='维修' and \
+# 			service_result is not null")
+# 		li=cur.fetchall()
+# 		conn.commit()
+# 		if len(li)==0:
+# 			return
 
-		self.dfa=pd.DataFrame(np.array(li),columns=['A','B'])
-		li_line=self.dfa['A'].drop_duplicates().tolist()
-		for i in li_line:
-			li_id=self.dfa[self.dfa['A']==i]['B'].drop_duplicates().tolist()
-			df_temp=self.dfa[self.dfa['A']==i]
-			for j in li_id:
-				df_count=df_temp[df_temp['B']==j]
-				count=df_count.shape[0]
-				self.table.setRowCount(self.table.rowCount()+1)
-				self.table.setItem(self.table.rowCount()-1,0,QTableWidgetItem(i))
-				self.table.setItem(self.table.rowCount()-1,1,QTableWidgetItem(j))
-				self.table.setItem(self.table.rowCount()-1,2,QTableWidgetItem(str(count)))
-		keys=self.finished_level.dic.keys()
-		li_A,li_B,li_C=self.finished_level.get_level()
-		for i in range(self.table.rowCount()):
-			if self.table.item(i,1).text() not in keys:
-				continue
-			self.table.setItem(i,3,QTableWidgetItem(self.finished_level.dic[self.table.item(i,1).text()][0]))
-			self.table.setItem(i,4,QTableWidgetItem(self.finished_level.dic[self.table.item(i,1).text()][1]))
+# 		self.dfa=pd.DataFrame(np.array(li),columns=['A','B'])
+# 		li_line=self.dfa['A'].drop_duplicates().tolist()
+# 		for i in li_line:
+# 			li_id=self.dfa[self.dfa['A']==i]['B'].drop_duplicates().tolist()
+# 			df_temp=self.dfa[self.dfa['A']==i]
+# 			for j in li_id:
+# 				df_count=df_temp[df_temp['B']==j]
+# 				count=df_count.shape[0]
+# 				self.table.setRowCount(self.table.rowCount()+1)
+# 				self.table.setItem(self.table.rowCount()-1,0,QTableWidgetItem(i))
+# 				self.table.setItem(self.table.rowCount()-1,1,QTableWidgetItem(j))
+# 				self.table.setItem(self.table.rowCount()-1,2,QTableWidgetItem(str(count)))
+# 		keys=self.finished_level.dic.keys()
+# 		li_A,li_B,li_C=self.finished_level.get_level()
+# 		for i in range(self.table.rowCount()):
+# 			if self.table.item(i,1).text() not in keys:
+# 				continue
+# 			self.table.setItem(i,3,QTableWidgetItem(self.finished_level.dic[self.table.item(i,1).text()][0]))
+# 			self.table.setItem(i,4,QTableWidgetItem(self.finished_level.dic[self.table.item(i,1).text()][1]))
 
-			if self.table.item(i,1).text() in li_A:
-				for j in range(5):
-					self.table.item(i,j).setBackground(QBrush(QColor(255,100,100)))
-			elif self.table.item(i,1).text() in li_B:
-				for j in range(5):
-					self.table.item(i,j).setBackground(QBrush(QColor(255,230,80)))
-			elif self.table.item(i,1).text() in li_C:
-				for j in range(5):
-					self.table.item(i,j).setBackground(QBrush(QColor(150,200,255)))
-			else:
-				pass
+# 			if self.table.item(i,1).text() in li_A:
+# 				for j in range(5):
+# 					self.table.item(i,j).setBackground(QBrush(QColor(255,100,100)))
+# 			elif self.table.item(i,1).text() in li_B:
+# 				for j in range(5):
+# 					self.table.item(i,j).setBackground(QBrush(QColor(255,230,80)))
+# 			elif self.table.item(i,1).text() in li_C:
+# 				for j in range(5):
+# 					self.table.item(i,j).setBackground(QBrush(QColor(150,200,255)))
+# 			else:
+# 				pass
 
 
 '''

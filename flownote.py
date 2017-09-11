@@ -31,6 +31,7 @@ class WinInOut(QWidget):
 		self.user_name=user_name
 		self.managerlimit=managerlimit
 		self.tablename=tablename
+		self.pm=PlanMassage()
 		self.initUI()
 
 	def initUI(self):
@@ -81,7 +82,7 @@ class WinInOut(QWidget):
 		根据产线账号和维修账号的不同，分别查询不同的状态
 		'''
 		if self.managerlimit.get_limit('产线登记'):
-			self.cur.execute("select id,service_result from "+self.tablename+" where product_id=%s and state='维修'",(sender.text()))
+			self.cur.execute("select id,service_result,project_num from "+self.tablename+" where product_id=%s and state='维修'",(sender.text()))
 			li=self.cur.fetchall()
 			self.conn.commit()
 			if len(li)==0:
@@ -92,14 +93,64 @@ class WinInOut(QWidget):
 				QMessageBox(text='   该机维修结果未登记！   ',parent=self).show()
 				sender.setText('')
 				return
+
+			project_num=li[0][2].replace(' ','')
+			if project_num=='':
+				return		
+			status,value=self.pm.get_json(project_num)
+			if status=='fail':
+				sender.setStyleSheet("background-color:rgb(255,255,255,255)")
+			if status!='fail':
+				finished_time=value['完成时间']
+				li_date=finished_time.split(' ')
+				li_date=li_date[0].split('/')
+				year=int(li_date[0])
+				month=int(li_date[1])
+				day=int(li_date[2])
+				finished_date=datetime.date(year,month,day)
+
+				today=datetime.datetime.now().date()
+				day_count= (finished_date-today).days
+				if day_count<=0:
+					sender.setStyleSheet("background-color:rgb(255,100,100,255)")
+				elif day_count==1:
+					sender.setStyleSheet("background-color:rgb(255,230,80,255)")
+				else:
+					sender.setStyleSheet("background-color:rgb(150,200,255,255)")
+
 		else:
-			self.cur.execute("select id from "+self.tablename+" where product_id=%s and state='待修'",(sender.text()))
+			self.cur.execute("select id,project_num from "+self.tablename+" where product_id=%s and state='待修'",(sender.text()))
 			li=self.cur.fetchall()
 			self.conn.commit()
 			if len(li)==0:
 				QMessageBox(text='   现象未登记或此机不在当前流程！   ',parent=self).show()
 				sender.setText('')
 				return
+
+			project_num=li[0][1].replace(' ','')
+			if project_num=='':
+				return		
+			status,value=self.pm.get_json(project_num)
+			if status=='fail':
+				sender.setStyleSheet("background-color:rgb(255,255,255,255)")
+			if status!='fail':
+				finished_time=value['完成时间']
+				li_date=finished_time.split(' ')
+				li_date=li_date[0].split('/')
+				year=int(li_date[0])
+				month=int(li_date[1])
+				day=int(li_date[2])
+				finished_date=datetime.date(year,month,day)
+
+				today=datetime.datetime.now().date()
+				day_count= (finished_date-today).days
+				if day_count<=0:
+					sender.setStyleSheet("background-color:rgb(255,100,100,255)")
+				elif day_count==1:
+					sender.setStyleSheet("background-color:rgb(255,230,80,255)")
+				else:
+					sender.setStyleSheet("background-color:rgb(150,200,255,255)")
+
 		sender.editingFinished.disconnect(self.editfinished)
 		sender.textChanged.connect(self.change_event)
 		self.lineedit=QLineEdit(self)

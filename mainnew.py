@@ -26,9 +26,11 @@ from faultmanager import *
 from manager import *
 from dataprocess import WinDataProcess
 from completelineedit import CompleteLineEdit
+from statistics import WinFaultStatistics
 import jieba
 
 '''
+
 产品信息栏，根据计划ID获取信息，设置内容，获取内容，设置widget是否使能
 '''
 class ProductBaseMassage(QGroupBox):
@@ -46,6 +48,7 @@ class ProductBaseMassage(QGroupBox):
 		self.li_date=['生产日期']
 		self.initUI()
 		self.show()
+
 	def initUI(self):
 		label_product_type=QLabel('产品分类',self)
 		label_main_model=QLabel('主型号',self)
@@ -348,19 +351,27 @@ class ProductFaultMassage(QGroupBox):
 		if len(li)>=1:
 			QMessageBox(text=' 该机状态在维修，请先转入！',parent=self).show()
 			return
+
+		'''查询该机维修次数'''
+		cur.execute("select count(id) from "+sql_table_name+" where product_id=%s and \
+			project_num=%s",(product_num,project_num))
+		li=cur.fetchall()
+		conn.commit()
+		service_count=str(li[0][0]+1)
+
 		cur.execute("INSERT INTO "+sql_table_name+" (main_model, serial_num,batch_num, line_num, \
 					process_state, product_class, produce_date, project_num, product_id,note_person, note_date,\
-					fault_class2,single_board_name,state) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,\
-					%s, %s, %s, %s)",(main_model,model,batch,line_name,process_status,product_type,\
+					fault_class2,single_board_name,state,second_service) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,\
+					%s, %s, %s, %s,%s)",(main_model,model,batch,line_name,process_status,product_type,\
 					produce_date,project_num,product_num,note_person,note_time,fault_type,\
-					board_name,'待修'))
+					board_name,'待修',service_count))
 		conn.commit()
 		self.line_product_num.setText('')
 		self.line_product_num.setFocus()
 		self.note_record.set_table([project_num,batch,main_model,product_num,line_name,process_status,fault_type,note_person,\
 			note_time,'','',''])
 
-
+'''维修登记'''
 class ProductServiceMassage(QGroupBox):
 	def __init__(self,product_base,view_work_hour,note_record,li_fault_jr=[],li_fault_yd=[]):
 		super().__init__('现象登记')
@@ -476,6 +487,7 @@ class ProductServiceMassage(QGroupBox):
 			self.line_fault_name.setText('')
 			self.product_base.set_enable_all(True)	
 			self.query_history_record(procuct_num)	
+			self.line_product_num.setStyleSheet("background-color:rgb(255,255,255,255)")
 			return
 
 		if len(li)==1:
@@ -515,20 +527,48 @@ class ProductServiceMassage(QGroupBox):
 			self.product_base.set_enable_all(False)
 
 			self.query_history_record(procuct_num)
+
 			if state=='待修':
 				QMessageBox(text=' 请先将该机转入后再登记结果！',parent=self).show()
+				
+			if project_num=='':			
 				return
 
+			pm=PlanMassage()
+			status,value=pm.get_json(project_num)
+			if status=='fail':
+				self.line_product_num.setStyleSheet("background-color:rgb(255,255,255,255)")
+				return
+			finished_time=value['完成时间']
+			li_date=finished_time.split(' ')
+			li_date=li_date[0].split('/')
+			year=int(li_date[0])
+			month=int(li_date[1])
+			day=int(li_date[2])
+			finished_date=datetime.date(year,month,day)
 
+			today=datetime.datetime.now().date()
+			day_count= (finished_date-today).days
+			if day_count<=0:
+				self.line_product_num.setStyleSheet("background-color:rgb(255,100,100,255)")
+			elif day_count==1:
+				self.line_product_num.setStyleSheet("background-color:rgb(255,230,80,255)")
+			else:
+				self.line_product_num.setStyleSheet("background-color:rgb(150,200,255,255)")
+
+
+
+
+	'''查询历史记录，如果存在维修记录则用Massage显示'''
 	def query_history_record(self,procuct_num):
 		cur.execute("select project_num,line_num,main_model,product_class,process_state,\
-		 fault_class2,fault_name,service_person,service_date from note_jr where product_id=%s and service_result is not null union \
+		 fault_class2,fault_name,service_person,service_result,service_date from note_jr where product_id=%s and service_result is not null union \
 		 select project_num,line_num,main_model,product_class,process_state,\
-		 fault_class2,fault_name,service_person,service_date from note_yd where product_id=%s and service_result is not null",(procuct_num,procuct_num))
+		 fault_class2,fault_name,service_person,service_result,service_date from note_yd where product_id=%s and service_result is not null",(procuct_num,procuct_num))
 		li=cur.fetchall()
 		conn.commit()
 		if len(li)>0:
-			li_header=['计划ID','线别','型号','分类','制程状态','故障分类','故障名称','维修人','维修日期']
+			li_header=['计划ID','线别','型号','分类','制程状态','故障分类','故障名称','维修人','维修结果','维修日期']
 			self.massage=Massage(li,header='该机维修记录',msgtype='table',table_header=li_header,parent=self)
 
 	def product_num_changed(self,text):
@@ -577,6 +617,7 @@ class ProductServiceMassage(QGroupBox):
 			self.note_update()
 		dic=self.get_content()
 		self.line_product_num.setFocus()
+		self.line_product_num.setStyleSheet("background-color:rgb(255,255,255,255)")
 		
 
 	def parse_fault(self):
@@ -609,6 +650,8 @@ class ProductServiceMassage(QGroupBox):
 		dic['备注']=self.line_comment.text()
 		dic['维修工时']=self.line_work_hour.text()
 		return dic
+
+	'''无登记不良现象的记录，插入一条新的记录'''
 	def note_insert(self):
 		dic=self.get_content()
 		service_time=str(datetime.datetime.now())[0:19]
@@ -616,6 +659,8 @@ class ProductServiceMassage(QGroupBox):
 			table_name='note_jr'
 		if dic['事业部']=='移动':
 			table_name='note_yd'
+
+		'''无产品编码的机器维修次数都为1'''
 		if dic['产品编码']=='':
 			cur.execute("INSERT INTO "+table_name+" (main_model, serial_num,batch_num, line_num, \
 					process_state, product_class, produce_date, project_num, product_id, fault_num,\
@@ -686,6 +731,9 @@ class ProductServiceMassage(QGroupBox):
 		if state=='待修':
 			QMessageBox(text=' 请先将该机转入后再登记结果！',parent=self).show()
 			return
+
+
+		'''维修次数的确定改为登记不良现象时确定'''
 		
 		cur.execute("select count(id) from "+table_name+" where product_id=%s and \
 			project_num=%s",(dic['产品编码'],dic['计划ID']))
@@ -695,11 +743,11 @@ class ProductServiceMassage(QGroupBox):
 		service_time=str(datetime.datetime.now())[0:19]
 		cur.execute("update "+table_name+" set service_result=%s, \
 			service_person=%s, service_date=%s, comment=%s,\
-			 work_hours=%s,material_name=%s,second_service=%s,\
-			fault_num=%s,fault_name=%s,fault_class=%s \
+			 work_hours=%s,material_name=%s,\
+			fault_num=%s,fault_name=%s,fault_class=%s,second_service=%s \
 			WHERE id=%s",(dic['不良原因'],user_name,service_time,dic['备注'],\
-				dic['维修工时'],dic['维修结果'],service_count,dic['故障代码'],\
-				dic['故障名称'],dic['故障分类'],self.record_id))
+				dic['维修工时'],dic['维修结果'],dic['故障代码'],\
+				dic['故障名称'],dic['故障分类'],service_count,self.record_id))
 		conn.commit()
 		self.note_record.set_table([dic['计划ID'],dic['批次'],dic['主型号'],dic['产品编码'],dic['线别'],dic['制程状态'],dic['故障名称'],\
 			'','',dic['不良原因'],user_name,str(datetime.datetime.now())[0:19]])
@@ -920,6 +968,8 @@ class Massage(QDialog):
 		vlayout.addWidget(btn,alignment=Qt.AlignCenter)
 		self.setLayout(vlayout)
 		self.setWindowTitle(self.title)
+		# self.setFixedSize(600,200)
+		self.setMinimumWidth(1100)
 		self.show()
 		self.exec()
 
@@ -1090,14 +1140,19 @@ class MainWidget(QWidget):
 		frame_pivot1=PivotView1()
 		frame_pivot.hide()
 		frame_pivot1.hide()
+		win_fault_statistics=WinFaultStatistics(cur,conn)
 		self.frame_query=DataQuery(cur,conn,frame_pivot,frame_pivot1,managerlimit)
 		tabwidget_process.addTab(self.frame_query,'数据查询')
 		if managerlimit.get_limit('数据统计'):
 			
 			tabwidget_process.addTab(frame_pivot,'数据统计')
 			tabwidget_process.addTab(frame_pivot1,'数据统计1')
+			
 			frame_pivot.show()
 			frame_pivot1.show()
+
+			tabwidget_process.addTab(win_fault_statistics,'合格率统计')
+
 		stack.addWidget(tabwidget_process)
 
 		if managerlimit.get_limit('管理员'):
@@ -1304,7 +1359,7 @@ if __name__=='__main__':
 	user_name=''
 	managerlimit=None
 
-	version='4.2'
+	version='4.4'
 	run_flag=True
 	cur.execute("select version_num_l,version_num_h from version_control")
 	li=cur.fetchall()
@@ -1324,4 +1379,3 @@ if __name__=='__main__':
 		logframe=LoginFrame()
 	# splash.finish(q)
 	sys.exit(app.exec_())
-

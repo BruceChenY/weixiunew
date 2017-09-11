@@ -14,8 +14,7 @@ import pandas.formats.format as fmt
 from pandas.io.excel import ExcelWriter
 
 class DataQuery(QWidget):
-	def __init__(self,cur,conn,pivot_view,pivot_view1,managerlimit):
-		
+	def __init__(self,cur,conn,pivot_view,pivot_view1,managerlimit):	
 		super().__init__()
 		self.df=None
 		self.dic={}
@@ -171,8 +170,7 @@ class DataQuery(QWidget):
 
 
 	def flush_event(self):
-
-		
+	
 		# try:
 
 		print('disconnect OK')

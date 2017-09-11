@@ -329,7 +329,6 @@ class WinDataProcess(QWidget):
 			self.dic[i]=dic_temp
 		print('dic>>>>>',self.dic)
 
-
 class WinFaultCount(QWidget):
 	def __init__(self,li):
 		super().__init__()
@@ -357,11 +356,10 @@ class WinFaultCount(QWidget):
 				self.table.setItem(self.table.rowCount()-1,1,QTableWidgetItem(j))
 				self.table.setItem(self.table.rowCount()-1,2,QTableWidgetItem(str(count)))
 
-
 class WinSelectFilter(QWidget):
-
 	def __init__(self,df,columns,column,dic,table,father):
 		super().__init__()
+		'''columns为表头列表，column为所选表头列int，dic为全局选择字典，table为所筛选的表格'''
 		self.df=df
 		self.columns=columns
 		self.column=column
@@ -420,11 +418,14 @@ class WinSelectFilter(QWidget):
 		self.setLayout(layout_scroll)
 		self.show()
 
+
+	'''单击全选触发事件'''
 	def clicked_all(self):
 		sender = self.sender()
 		if sender.checkState()==1:
 			sender.setCheckState(2)
 
+	'''单击全选后全选框的状态将改变所有选框的状态，并计算确定按钮是否可用'''
 	def statechanged_all(self,state):
 		print(self.check_all.isTristate())
 		if state==2:
@@ -438,6 +439,7 @@ class WinSelectFilter(QWidget):
 		if state==1:
 			self.btn_commit.setEnabled(True)
 
+	'''单个选择框状态的改变将会改变全局字典，并计算全选框的状态'''
 	def statechanged(self,state):
 		sender = self.sender()
 		print(sender.text())
@@ -448,6 +450,7 @@ class WinSelectFilter(QWidget):
 		len_li=len(self.li_checkbox)
 		len_off=0
 		len_on=0
+		'''循环检查全部单选框状态，计算全选框的状态'''
 		for i in self.li_checkbox:
 			if i.checkState()==2:
 				len_on+=1
@@ -459,13 +462,9 @@ class WinSelectFilter(QWidget):
 			self.check_all.setCheckState(2)
 		if len_on<len_li and len_off<len_li:
 			self.check_all.setCheckState(1)
-		print('KKKKKKKKKKKKK')
-		print(len_li)
-		print(len_off)
-		print(len_on)
 
-		
 
+	'''确定按钮事件，根据单选框的状态修改全局dic的值'''
 	def commit_event(self):
 		if self.check_all.checkState()==2:
 			for i in self.dic[self.columns[self.column]].keys():
@@ -494,6 +493,7 @@ class WinSelectFilter(QWidget):
 		li=df.values
 		self.father.update_table(li)
 
+	'''过滤算法，先算出numpy列表（布尔值），再根据numpy算出df'''
 	def filter_base(self,li_column):
 		print(li_column)
 		df_judge=self.df['ID']!='S'
@@ -506,4 +506,3 @@ class WinSelectFilter(QWidget):
 			df_judge=self.df[i].isin(li_temp)&df_judge
 		df=self.df[df_judge]
 		return df
-
